@@ -989,18 +989,13 @@ public class DbiTail extends Application {
         btInsertLine.setTooltip(new Tooltip("Insert breaking line"));
         btInsertLine.setPrefWidth(30);
         btInsertLine.setPrefHeight(30);
-        btInsertLine.setOnAction(new EventHandler<ActionEvent>() {
+        btInsertLine.setOnAction(event -> {
 
-            @Override
-            public void handle(ActionEvent event) {
+            ArrayList<TreeItemNode> nodes = new ArrayList<>();
+            TreeItemNode.getRecursiveLeaf((TreeItemNode) treeView.getRoot(), nodes);
 
-                ArrayList<TreeItemNode> nodes = new ArrayList();
-                TreeItemNode.getRecursiveLeaf((TreeItemNode) treeView.getRoot(), nodes);
-
-                for (TreeItemNode node : nodes) {
-
-                    node.getInformationObject().getWindowTextConsole().insertLine(node.getInformationObject().isDisplayColors());
-                }
+            for (TreeItemNode node : nodes) {
+                node.getInformationObject().getWindowTextConsole().insertLine(node.getInformationObject().isDisplayColors());
             }
         }
         );
@@ -1012,53 +1007,49 @@ public class DbiTail extends Application {
         btAdd.setPrefWidth(30);
         btAdd.setPrefHeight(30);
         btAdd.setOnAction(
-                new EventHandler<ActionEvent>() {
+                event -> {
 
-                    @Override
-                    public void handle(ActionEvent event) {
+                    newTreeItemFlag = true;
 
-                        newTreeItemFlag = true;
+                    textFieldNodeName.setText("");
+                    textFieldFileLocation.setText("");
 
-                        textFieldNodeName.setText("");
-                        textFieldFileLocation.setText("");
-
-                        if (ApplicationContext.getInstance().containsKey("tail.displayColor")) {
-                            displayColors.setSelected(ApplicationContext.getInstance().getBoolean("tail.displayColor"));
-                        } else {
-                            displayColors.setSelected(true);
-                        }
-
-                        if (ApplicationContext.getInstance().containsKey("tail.bufferSize")) {
-                            textFieldBufferSize.setText(ApplicationContext.getInstance().getString("tail.bufferSize"));
-                        } else {
-                            textFieldBufferSize.setText("100");
-                        }
-
-                        if (ApplicationContext.getInstance().containsKey("tail.frequencyInterval")) {
-                            textFieldFrequency.setText(ApplicationContext.getInstance().getString("tail.frequencyInterval"));
-                        } else {
-                            textFieldBufferSize.setText("500");
-                        }
-
-                        metricOveralDefinition.setVisible(true);
-                        gridPaneName.setDisable(false);
-                        labelNodeName.setDisable(false);
-                        textFieldNodeName.setDisable(false);
-
-                        save.setVisible(true);
-                        edit.setVisible(true);
-                        save.setDisable(false);
-                        edit.setDisable(false);
-                        gridPaneInformation.setDisable(false);
-                        labelNodeName.setDisable(false);
-                        textFieldNodeName.setDisable(false);
-                        labelFrequency.setDisable(false);
-                        textFieldFrequency.setDisable(false);
-
-                        edit.setText("Cancel");
-                        stackPaneInformation.getChildren().clear();
-                        stackPaneInformation.getChildren().add(vboxInformationFile);
+                    if (ApplicationContext.getInstance().containsKey("tail.displayColor")) {
+                        displayColors.setSelected(ApplicationContext.getInstance().getBoolean("tail.displayColor"));
+                    } else {
+                        displayColors.setSelected(true);
                     }
+
+                    if (ApplicationContext.getInstance().containsKey("tail.bufferSize")) {
+                        textFieldBufferSize.setText(ApplicationContext.getInstance().getString("tail.bufferSize"));
+                    } else {
+                        textFieldBufferSize.setText("100");
+                    }
+
+                    if (ApplicationContext.getInstance().containsKey("tail.frequencyInterval")) {
+                        textFieldFrequency.setText(ApplicationContext.getInstance().getString("tail.frequencyInterval"));
+                    } else {
+                        textFieldBufferSize.setText("500");
+                    }
+
+                    metricOveralDefinition.setVisible(true);
+                    gridPaneName.setDisable(false);
+                    labelNodeName.setDisable(false);
+                    textFieldNodeName.setDisable(false);
+
+                    save.setVisible(true);
+                    edit.setVisible(true);
+                    save.setDisable(false);
+                    edit.setDisable(false);
+                    gridPaneInformation.setDisable(false);
+                    labelNodeName.setDisable(false);
+                    textFieldNodeName.setDisable(false);
+                    labelFrequency.setDisable(false);
+                    textFieldFrequency.setDisable(false);
+
+                    edit.setText("Cancel");
+                    stackPaneInformation.getChildren().clear();
+                    stackPaneInformation.getChildren().add(vboxInformationFile);
                 }
         );
 
@@ -1068,31 +1059,27 @@ public class DbiTail extends Application {
         btRemove.setTooltip(new Tooltip("Remove File"));
         btRemove.setPrefWidth(30);
         btRemove.setPrefHeight(30);
-        btRemove.setOnAction(new EventHandler<ActionEvent>() {
+        btRemove.setOnAction(event -> {
 
-            @Override
-            public void handle(ActionEvent event) {
+            TreeItemNode selectedTreeItem = (TreeItemNode) treeView.getSelectionModel().getSelectedItem();
+            if (selectedTreeItem != null) {
+                Alert alert = new Alert(AlertType.CONFIRMATION);
+                alert.setTitle("Remove confirmation");
+                alert.setHeaderText("Remove confirmation");
+                alert.setContentText("Would you like to remove node: " + selectedTreeItem.getInformationObject().getDisplayName());
 
-                TreeItemNode selectedTreeItem = (TreeItemNode) treeView.getSelectionModel().getSelectedItem();
-                if (selectedTreeItem != null) {
-                    Alert alert = new Alert(AlertType.CONFIRMATION);
-                    alert.setTitle("Remove confirmation");
-                    alert.setHeaderText("Remove confirmation");
-                    alert.setContentText("Would you like to remove node: " + selectedTreeItem.getInformationObject().getDisplayName());
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.get() == ButtonType.OK) {
 
-                    Optional<ButtonType> result = alert.showAndWait();
-                    if (result.get() == ButtonType.OK) {
+                    refreshInformationVBox((TreeItemNode) selectedTreeItem.getParent());
+                    selectedTreeItem.hideTextconsole();
+                    selectedTreeItem.stopTailSchedule();
+                    selectedTreeItem.removeNode(treeView);
 
-                        refreshInformationVBox((TreeItemNode) selectedTreeItem.getParent());
-                        selectedTreeItem.hideTextconsole();
-                        selectedTreeItem.stopTailSchedule();
-                        selectedTreeItem.removeNode(treeView);
-
-                        logger.debug("File succesfully removed: \"" + selectedTreeItem.getInformationObject().getDisplayName() + "\"");
-                        saveTreeToFile();
-                    }
-
+                    logger.debug("File succesfully removed: \"" + selectedTreeItem.getInformationObject().getDisplayName() + "\"");
+                    saveTreeToFile();
                 }
+
             }
         }
         );
@@ -1103,45 +1090,42 @@ public class DbiTail extends Application {
         edit.setPrefWidth(80);
 
         edit.setOnAction(
-                new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(final ActionEvent e) {
+                e -> {
 
-                        if (newTreeItemFlag) {
+                    if (newTreeItemFlag) {
 
-                            save.setVisible(false);
-                            edit.setVisible(false);
-                            metricOveralDefinition.setVisible(false);
+                        save.setVisible(false);
+                        edit.setVisible(false);
+                        metricOveralDefinition.setVisible(false);
 
-                            refreshInformationVBox((TreeItemNode) treeView.getSelectionModel().getSelectedItem());
+                        refreshInformationVBox((TreeItemNode) treeView.getSelectionModel().getSelectedItem());
+                        edit.setText("Edit");
+                    } else {
+
+                        if (editFlag) {
+                            editFlag = !editFlag;
+                            save.setDisable(true);
                             edit.setText("Edit");
+                            edit.requestFocus();
+                            gridPaneInformation.setDisable(true);
+                            labelNodeName.setDisable(true);
+                            textFieldNodeName.setDisable(true);
+                            choiceBoxColorTemplate.setDisable(true);
+                            choiceBoxCharset.setDisable(true);
+                            labelFrequency.setDisable(true);
+                            textFieldFrequency.setDisable(true);
                         } else {
-
-                            if (editFlag) {
-                                editFlag = !editFlag;
-                                save.setDisable(true);
-                                edit.setText("Edit");
-                                edit.requestFocus();
-                                gridPaneInformation.setDisable(true);
-                                labelNodeName.setDisable(true);
-                                textFieldNodeName.setDisable(true);
-                                choiceBoxColorTemplate.setDisable(true);
-                                choiceBoxCharset.setDisable(true);
-                                labelFrequency.setDisable(true);
-                                textFieldFrequency.setDisable(true);
-                            } else {
-                                editFlag = !editFlag;
-                                save.setDisable(false);
-                                labelNodeName.setDisable(false);
-                                textFieldNodeName.setDisable(false);
-                                gridPaneInformation.setDisable(false);
-                                choiceBoxColorTemplate.setDisable(false);
-                                choiceBoxCharset.setDisable(false);
-                                labelFrequency.setDisable(false);
-                                textFieldFrequency.setDisable(false);
-                                edit.setText("Cancel");
-                                save.requestFocus();
-                            }
+                            editFlag = !editFlag;
+                            save.setDisable(false);
+                            labelNodeName.setDisable(false);
+                            textFieldNodeName.setDisable(false);
+                            gridPaneInformation.setDisable(false);
+                            choiceBoxColorTemplate.setDisable(false);
+                            choiceBoxCharset.setDisable(false);
+                            labelFrequency.setDisable(false);
+                            textFieldFrequency.setDisable(false);
+                            edit.setText("Cancel");
+                            save.requestFocus();
                         }
                     }
                 }
@@ -1153,13 +1137,10 @@ public class DbiTail extends Application {
         save.setPrefWidth(80);
 
         save.setOnAction(
-                new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(final ActionEvent e) {
+                e -> {
 
-                        // button.fire() Not working on all Windows 7 with all JRE..., 
-                        fireSaveButton();
-                    }
+                    // button.fire() Not working on all Windows 7 with all JRE...,
+                    fireSaveButton();
                 }
         );
 
@@ -1170,16 +1151,12 @@ public class DbiTail extends Application {
         btColorChooser.setPrefWidth(30);
         btColorChooser.setPrefHeight(30);
         btColorChooser.setOnAction(
-                new EventHandler<ActionEvent>() {
+                event -> {
 
-                    @Override
-                    public void handle(ActionEvent event) {
+                    rootInformationObject.setColorConfiguration((ColorConfiguration) ApplicationContext.getInstance().get("colorDefaultConfiguration"));
 
-                        rootInformationObject.setColorConfiguration((ColorConfiguration) ApplicationContext.getInstance().get("colorDefaultConfiguration"));
-
-                        ColorChooserWindow colorChooserWindow = new ColorChooserWindow(rootInformationObject, colorFileName);
-                        colorChooserWindow.start(new Stage());
-                    }
+                    ColorChooserWindow colorChooserWindow = new ColorChooserWindow(rootInformationObject, colorFileName);
+                    colorChooserWindow.start(new Stage());
                 }
         );
 
@@ -1190,30 +1167,26 @@ public class DbiTail extends Application {
         btHelp.setPrefWidth(30);
         btHelp.setPrefHeight(30);
         btHelp.setOnAction(
-                new EventHandler<ActionEvent>() {
+                event -> {
 
-                    @Override
-                    public void handle(ActionEvent event) {
+                    if (Files.exists(Paths.get("UserManual.pdf"))) {
 
-                        if (Files.exists(Paths.get("UserManual.pdf"))) {
-
-                            String osName = System.getProperty("os.name").toLowerCase();
-                            if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("aix")) {
-                                if (Desktop.isDesktopSupported()) {
-                                    try {
-                                        File myFile = new File("UserManual.pdf");
-                                        Desktop.getDesktop().open(myFile);
-                                    } catch (IOException ex) {
-                                        logger.info("No PDF reader found");
-                                        getHostServices().showDocument("https://github.com/pschweitz/DBITail");
-                                    }
+                        String osName = System.getProperty("os.name").toLowerCase();
+                        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("aix")) {
+                            if (Desktop.isDesktopSupported()) {
+                                try {
+                                    File myFile = new File("UserManual.pdf");
+                                    Desktop.getDesktop().open(myFile);
+                                } catch (IOException ex) {
+                                    logger.info("No PDF reader found");
+                                    getHostServices().showDocument("https://github.com/pschweitz/DBITail");
                                 }
-                            } else {
-                                getHostServices().showDocument("https://github.com/pschweitz/DBITail");
                             }
                         } else {
                             getHostServices().showDocument("https://github.com/pschweitz/DBITail");
                         }
+                    } else {
+                        getHostServices().showDocument("https://github.com/pschweitz/DBITail");
                     }
                 }
         );
@@ -1541,24 +1514,20 @@ public class DbiTail extends Application {
 
     private void initMainStage(Stage mainStage) {
         this.mainStage = mainStage;
-        mainStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+        mainStage.setOnCloseRequest(event -> {
 
-            @Override
-            public void handle(WindowEvent event) {
-
-                if (!Files.exists(Paths.get(ApplicationContext.getPropertiesFilename()))) {
-                    try {
-                        if (!Files.exists(Paths.get("etc"))) {
-                            Files.createDirectory(Paths.get("etc"));
-                        }
-                        ApplicationContext.getInstance().storeProperties();
-                    } catch (Exception e) {
-
+            if (!Files.exists(Paths.get(ApplicationContext.getPropertiesFilename()))) {
+                try {
+                    if (!Files.exists(Paths.get("etc"))) {
+                        Files.createDirectory(Paths.get("etc"));
                     }
+                    ApplicationContext.getInstance().storeProperties();
+                } catch (Exception e) {
+
                 }
-                System.exit(0);
-                event.consume();
             }
+            System.exit(0);
+            event.consume();
         }
         );
 
